@@ -67,14 +67,14 @@
 // así que uso mk_?_PROBE_OFFSET_FROM_EXTRUDER para escribir los valores sólo una vez y usarlos en #define y/o en inicialización de array
 #define mk_X_PROBE_OFFSET_FROM_EXTRUDER 28.32
 #define mk_Y_PROBE_OFFSET_FROM_EXTRUDER -27.25
-#define mk_Z_PROBE_OFFSET_FROM_EXTRUDER -5.35 // para que se pegue más, cantidad más pequeña (mayor en valor absoluto)
+#define mk_Z_PROBE_OFFSET_FROM_EXTRUDER -5.35 // para que se pegue más, cantidad más pequeña (mayor en valor absoluto) ¡¡Z_RAISE_BEFORE_HOMING VA EN CONSONANCIA!!
 ////////////////////////////////////////////////////////////////////////
 #define X_PROBE_OFFSET_FROM_EXTRUDER mk_X_PROBE_OFFSET_FROM_EXTRUDER
 #define Y_PROBE_OFFSET_FROM_EXTRUDER mk_Y_PROBE_OFFSET_FROM_EXTRUDER
 #define Z_PROBE_OFFSET_FROM_EXTRUDER mk_Z_PROBE_OFFSET_FROM_EXTRUDER
 ////////////////////////////////////////////////////////////////////////
 
-#undef Z_RAISE_BEFORE_HOMING	3
+#define Z_RAISE_BEFORE_HOMING	6 // debe ser un entero mayor que el valor absoluto de mk_Z_PROBE_OFFSET_FROM_EXTRUDER para garantizar que encuentra el endstop desde arriba
 
 ////////////////////////////////////////////////////////////////////////
 // OjO: las constantes "oficiales" son Z_RAISE_*_*, pero si defined(MAKA_ZP_CFG) necesito reconducirlas a variables,
@@ -297,8 +297,9 @@
 
 #ifdef MAKA_PAUSA
   #define MAKA_PAUSA_APARCA_X	0
-  #define MAKA_PAUSA_APARCA_Y	500
+  #define MAKA_PAUSA_APARCA_Y	Y_MAX_POS
   #define MAKA_PAUSA_ALZAMIENTO	1
+  #define MAKA_PAUSA_Z_MINIMO	4	// evitar que el cabezal roce con la pinza que sujeta el cristal en una pausa a baja altura
   #define MAKA_PAUSA_RETRACCION	2
   #define MAKA_PAUSA_INVOCACION	PSTR("M25")
   #define MAKA_PAUSA_MSG	"pausa"
