@@ -552,9 +552,12 @@ void maka_pausa(bool parar)
 	static int mp_bufindr = 0;
 	static int mp_bufindw = 0;
 	static int mp_buflen = 0;
-	if (axis_known_position[X_AXIS] && axis_known_position[Y_AXIS]) { // admitir una pausa sin conocer la posición es peligroso, porque involucra movimientos a tope de ejes y de velocidad
-		if (parar) {
-			if ( !mp_activa ) {
+	
+	if (parar) {
+		if ( !mp_activa )
+
+			if (axis_known_position[X_AXIS] && axis_known_position[Y_AXIS]) {
+
 				#ifdef MAKA_PRODUCCION
 					previo_maka_en_produccion = maka_en_produccion;
 					maka_en_produccion = false;
@@ -592,72 +595,75 @@ void maka_pausa(bool parar)
 
 				previo_starttime = starttime;
 				bufindw = (bufindr + (buflen = 1))%BUFSIZE;
-			} 
-		} else {
-			if ( mp_activa ) {
-
-				starttime = previo_starttime;
-
-				// preparar las ordenes que quedaban de antes, para que se ejecuten ahora
-				buflen = mp_buflen;
-				bufindr = mp_bufindr;
-				bufindw = mp_bufindw;
-				// puede que haya ordenes llegadas por serie posteriores a la reanudación de la pausa: las ignoro, y que continúe la lectura desde SD
-				memcpy(cmdbuffer, mp_cmdbuffer, sizeof(cmdbuffer) );
-				memset(fromsd, true, sizeof(fromsd)); // doy por hecho que las órdenes pendientes eran de SD para evitar el mensaje de acknowedgement			 
-							
-
-				float movimiento_habido_en_E = current_position[E_AXIS] - previo_position[E_AXIS] + MAKA_PAUSA_RETRACCION;
-				// inmovilizar el extrusor, como si estuviera tal y como al pausar (si he cambiado el filamento, el extrusor compensaría ahora entradas y salidas)
-				plan_set_e_position(current_position[E_AXIS] = previo_position[E_AXIS]);
-				// asegurar que el movimiento en XY es al menos retract_zlift mm por encima de la pieza
-				if (current_position[Z_AXIS] < (previo_position[Z_AXIS] + MAKA_PAUSA_ALZAMIENTO ) ) {
-					memcpy(destination, current_position, sizeof(destination));
-					destination[Z_AXIS] = previo_position[Z_AXIS] + MAKA_PAUSA_ALZAMIENTO;
-					feedrate = (max_feedrate[Z_AXIS] * 60); // rápido, que es un alzamiento
-					prepare_move();
-					st_synchronize(); 
-				}
-				// los movimientos para continuar los haré despacio (mirando HOMING_FEEDRATE[] (mm/min) y max_feedrate[E_AXIS]/2 (mm/sg))
-				memcpy(destination, previo_position, sizeof(destination));
-				destination[Z_AXIS] += MAKA_PAUSA_ALZAMIENTO;
-				feedrate = max_feedrate[X_AXIS] * 60;
-				prepare_move();
-				st_synchronize(); // esperar a tenerlo en posición XY
-				destination[Z_AXIS] = previo_position[Z_AXIS];
-				prepare_move();
-				st_synchronize(); // esperar a tenerlo a la altura requerida
-				// si ha habido más de .1mm de movimiento entiendo que el usuario ha dejado el extrusor a punto, y no lo toco
-				// si no, el movimiento_habido_en_E debería ser 0, pero admito una desviación de .1mm
-				if ( (movimiento_habido_en_E > -.1) && (movimiento_habido_en_E < .1) ) {
-					destination[E_AXIS] = previo_position[E_AXIS] + MAKA_PAUSA_RETRACCION;
-					feedrate = max_feedrate[E_AXIS] * 60;
-					prepare_move();
-					st_synchronize();
-					plan_set_e_position(previo_position[E_AXIS]); 
-				}
-				feedrate = previo_feedrate; 
-				starttime = previo_starttime;
 				
-				#ifdef MAKA_PRODUCCION
-					maka_en_produccion = previo_maka_en_produccion;		
-				#endif
-				#ifdef MAKA_FILAMENTO
-					mf_resolviendo = false;
-				#endif
-			} else
-				starttime = millis();
+				mp_activa = true;
+				
+			} else { // admitir una pausa sin conocer la posición es peligroso, porque involucra movimientos a tope de ejes y de velocidad
+				// sacar el mensajito y dejarlo ahí, y dejar que mp_activa siga siendo false
+				maka_alarma(MSG_POSITION_UNKNOWN);
+				maka_alarma();
+			}
 
-			card.startFileprint();
-		}
-		
-		mp_activa = parar;
 	} else {
-		// sacar el mensajito y dejarlo ahí
-		maka_alarma(MSG_POSITION_UNKNOWN);
-		maka_alarma();
+		if ( mp_activa ) {
+
+			starttime = previo_starttime;
+
+			// preparar las ordenes que quedaban de antes, para que se ejecuten ahora
+			buflen = mp_buflen;
+			bufindr = mp_bufindr;
+			bufindw = mp_bufindw;
+			// puede que haya ordenes llegadas por serie posteriores a la reanudación de la pausa: las ignoro, y que continúe la lectura desde SD
+			memcpy(cmdbuffer, mp_cmdbuffer, sizeof(cmdbuffer) );
+			memset(fromsd, true, sizeof(fromsd)); // doy por hecho que las órdenes pendientes eran de SD para evitar el mensaje de acknowedgement			 
+						
+
+			float movimiento_habido_en_E = current_position[E_AXIS] - previo_position[E_AXIS] + MAKA_PAUSA_RETRACCION;
+			// inmovilizar el extrusor, como si estuviera tal y como al pausar (si he cambiado el filamento, el extrusor compensaría ahora entradas y salidas)
+			plan_set_e_position(current_position[E_AXIS] = previo_position[E_AXIS]);
+			// asegurar que el movimiento en XY es al menos retract_zlift mm por encima de la pieza
+			if (current_position[Z_AXIS] < (previo_position[Z_AXIS] + MAKA_PAUSA_ALZAMIENTO ) ) {
+				memcpy(destination, current_position, sizeof(destination));
+				destination[Z_AXIS] = previo_position[Z_AXIS] + MAKA_PAUSA_ALZAMIENTO;
+				feedrate = (max_feedrate[Z_AXIS] * 60); // rápido, que es un alzamiento
+				prepare_move();
+				st_synchronize(); 
+			}
+			// los movimientos para continuar los haré despacio (mirando HOMING_FEEDRATE[] (mm/min) y max_feedrate[E_AXIS]/2 (mm/sg))
+			memcpy(destination, previo_position, sizeof(destination));
+			destination[Z_AXIS] += MAKA_PAUSA_ALZAMIENTO;
+			feedrate = max_feedrate[X_AXIS] * 60;
+			prepare_move();
+			st_synchronize(); // esperar a tenerlo en posición XY
+			destination[Z_AXIS] = previo_position[Z_AXIS];
+			prepare_move();
+			st_synchronize(); // esperar a tenerlo a la altura requerida
+			// si ha habido más de .1mm de movimiento entiendo que el usuario ha dejado el extrusor a punto, y no lo toco
+			// si no, el movimiento_habido_en_E debería ser 0, pero admito una desviación de .1mm
+			if ( (movimiento_habido_en_E > -.1) && (movimiento_habido_en_E < .1) ) {
+				destination[E_AXIS] = previo_position[E_AXIS] + MAKA_PAUSA_RETRACCION;
+				feedrate = max_feedrate[E_AXIS] * 60;
+				prepare_move();
+				st_synchronize();
+				plan_set_e_position(previo_position[E_AXIS]); 
+			}
+			feedrate = previo_feedrate; 
+			starttime = previo_starttime;
+			
+			#ifdef MAKA_PRODUCCION
+				maka_en_produccion = previo_maka_en_produccion;		
+			#endif
+			#ifdef MAKA_FILAMENTO
+				mf_resolviendo = false;
+			#endif
+			
+			mp_activa = false;
+		} else
+			starttime = millis();
+
+		card.startFileprint();
 	}
-	
+
 }  
 #endif
 
